@@ -1,0 +1,235 @@
+---
+título: "BANCO DE DADOS SÃO PAULO"
+autor: Priscila Kauana Barelli Forcel e Tatiane Ferreira Olivatto
+data: 02/12/2024
+---
+
+```{r}
+#Instalando os pacotes 
+install.packages("knitr")
+install.packages("readxl")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("openxlsx")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl) #Leitura de arquivos em Excel
+library(dplyr) #Manipulação de dados
+library(tidyr) #Manipulação de dados
+library(openxlsx)#Exportar em excel
+```
+
+
+```{r}
+# Carregando e lendo o arquivo, 0_SP-MATRIZ_2 é o arquivo base, extraido do QGIS
+Matriz <- read_excel("0_SP-MATRIZ_2.xlsx")
+```
+
+#Carregando e lendo os arquivos, esses arquivos são as planilhas do Censo Universo, estamos utilizando Capital = C e Exceto Capital = EC
+#Obs.: [-1, ] para excluir a linha índice da segunda planilha
+
+
+```{r}
+#Para planilha Básica
+# Ler planilha e selecionar as colunas desejada++s, para Capital e exceto Capital
+Basico_C <- read_excel("Capital/EXCEL/Basico_SP1.xls") %>% select(Cod_setor, Situacao_setor)
+Basico_EC <- read_excel("Exceto_Capital/EXCEL/Basico_SP2.xls") %>% select(Cod_setor, Situacao_setor)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Basico <- rbind(Basico_C, (Basico_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Basico$Cod_setor <- as.character(Basico$Cod_setor)
+```
+
+```{r}
+#Para planilha domicílios 01
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Domicilio01_C <- read_excel("Capital/EXCEL/Domicilio01_SP1.xls") %>% select(Cod_setor, V002, V023, V037, V038, V039, V040, V041, V046, V101, V102, V103, V233)
+Domicilio01_EC <- read_excel("Exceto_Capital/EXCEL/Domicilio01_SP2.xls") %>% select(Cod_setor, V002, V023, V037, V038, V039, V040, V041, V046, V101, V102, V103, V233)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Domicilio01 <- rbind(Domicilio01_C, (Domicilio01_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Domicilio01$Cod_setor <- as.character(Domicilio01$Cod_setor)
+```
+
+```{r}
+#Para planilha domicílios 02
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Domicilio02_C <- read_excel("Capital/EXCEL/Domicilio02_SP1.xls") %>% select(Cod_setor, V007, V008, V009, V011, V023, V041)
+Domicilio02_EC <- read_excel("Exceto_Capital/EXCEL/Domicilio02_SP2.xls")%>% select(Cod_setor, V007, V008, V009, V011, V023, V041)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Domicilio02 <- rbind(Domicilio02_C, (Domicilio02_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Domicilio02$Cod_setor <- as.character(Domicilio02$Cod_setor)
+```
+
+```{r}
+#Para planilha Responsável 01
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Responsavel01_C <- read_excel("Capital/EXCEL/responsavel01_sp1.xls") %>% select(Cod_setor, V001)
+Responsavel01_EC <- read_excel("Exceto_Capital/EXCEL/responsavel01_sp2.xls")%>% select(Cod_setor, V001)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Responsavel01 <- rbind(Responsavel01_C, (Responsavel01_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Responsavel01$Cod_setor <- as.character(Responsavel01$Cod_setor)
+```
+
+```{r}
+#Para planilha Responsável 02
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Responsavel02_C <- read_excel("Capital/EXCEL/responsavel02_sp1.xls") %>% select(Cod_setor, V109)
+Responsavel02_EC <- read_excel("Exceto_Capital/EXCEL/responsavel02_sp2.xls")%>% select(Cod_setor, V109)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Responsavel02 <- rbind(Responsavel02_C, (Responsavel02_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Responsavel02$Cod_setor <- as.character(Responsavel02$Cod_setor)
+```
+
+```{r}
+#Para planilha Pessoas 03
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Pessoa03_C <- read_excel("Capital/EXCEL/pessoa03_SP1.xls") %>% select(Cod_setor, V001, V002, V003, V004, V005, V006)
+Pessoa03_EC <- read_excel("Exceto_Capital/EXCEL/pessoa03_sp2.xls")%>% select(Cod_setor, V001, V002, V003, V004, V005, V006)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Pessoa03 <- rbind(Pessoa03_C, (Pessoa03_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Pessoa03$Cod_setor <- as.character(Pessoa03$Cod_setor)
+```
+
+```{r}
+#Para planilha Pessoas 13
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Pessoa13_C <- read_excel("Capital/EXCEL/pessoa13_SP1.xls") %>% select(Cod_setor, V002, V003, V004, V005, V006, V007, V008, V009, V010, V011, V012, V013, V014, V015, V016, V017)
+Pessoa13_EC <- read_excel("Exceto_Capital/EXCEL/pessoa13_sp2.xls") %>% select(Cod_setor, V002, V003, V004, V005, V006, V007, V008, V009, V010, V011, V012, V013, V014, V015, V016, V017)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Pessoa13 <- rbind(Pessoa13_C, (Pessoa13_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Pessoa13$Cod_setor <- as.character(Pessoa13$Cod_setor)
+```
+
+```{r}
+#Para planilha DomicilioRenda
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+DomicilioRenda_C <- read_excel("Capital/EXCEL/DomicilioRenda_SP1.xls") %>% select(Cod_setor, V001, V002, V004, V014)
+DomicilioRenda_EC <- read_excel("Exceto_Capital/EXCEL/DomicilioRenda_SP2.xls") %>% select(Cod_setor, V001, V002, V004, V014)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+DomicilioRenda <- rbind(DomicilioRenda_C, (DomicilioRenda_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+DomicilioRenda$Cod_setor <- as.character(DomicilioRenda$Cod_setor)
+```
+
+```{r}
+#Para planilha Entorno 01
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Entorno01_C <- read_excel("Capital/EXCEL/Entorno01_SP1.xls") %>% select(Cod_setor, V011, V017, V050, V052, V113, V119, V125, V131, V137, V143, V149, V154, V160)
+Entorno01_EC <- read_excel("Exceto_Capital/EXCEL/Entorno01_SP2.xls") %>% select(Cod_setor, V011, V017, V050, V052, V113, V119, V125, V131, V137, V143, V149, V154, V160)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Entorno01 <- rbind(Entorno01_C, (Entorno01_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Entorno01$Cod_setor <- as.character(Entorno01$Cod_setor)
+```
+
+```{r}
+#Para planilha Entorno 02
+# Ler planilha e selecionar as colunas desejadas, para Capital e exceto Capital
+Entorno02_C <- read_excel("Capital/EXCEL/Entorno02_SP1.xls") %>% select(Cod_setor, V202, V203, V204, V205, V206, V207)
+Entorno02_EC <- read_excel("Exceto_Capital/EXCEL/Entorno02_SP2.xls") %>% select(Cod_setor, V202, V203, V204, V205, V206, V207)
+# Concatenar planilhas eliminando a linha índice da segunda planilha
+Entorno02 <- rbind(Entorno02_C, (Entorno02_EC)[-1, ])
+# Transformar o código do Setor de número para texto
+Entorno02$Cod_setor <- as.character(Entorno02$Cod_setor)
+```
+
+```{r}
+# Montar a Matriz Total - SP, com todos os dados selecionados até o então. A Matriz_Total_SP será a base, mantendo a Matriz na esquerda e selecionar cada uma das outras planilhas e associar os dados por Cod_setor:
+
+Matriz_Total_SP <- Matriz %>%
+  left_join(Basico, by = "Cod_setor") %>%
+  left_join(Domicilio01, by = "Cod_setor") %>%
+  left_join(Domicilio02, by = "Cod_setor") %>%
+  left_join(Responsavel01, by = "Cod_setor") %>%
+  left_join(Responsavel02, by = "Cod_setor") %>%
+  left_join(Pessoa03, by = "Cod_setor") %>%
+  left_join(Pessoa13, by = "Cod_setor") %>%
+  left_join(DomicilioRenda, by = "Cod_setor") %>%
+  left_join(Entorno01, by = "Cod_setor") %>%
+  left_join(Entorno02, by = "Cod_setor")
+```
+
+```{r}
+#Para transformar as variáveis em conteúdo numérico, observação: somente as variáveis importadas do Censo Universo, não as importadas do QGIs
+variaveis_numericas <- c("V002.x", "V023.x", "V037", "V038", "V039", "V040", "V041.x", "V046", "V101", "V102", "V103", "V233", "V007.x", "V008.x", "V009.x", "V011.x", "V023.y", "V041.y", "V001.x", "V109", "V001.y", "V002.y", "V003.x", "V004.x", "V005.x", "V006.x", "V002.x.x", "V003.y", "V004.y", "V005.y", "V006.y", "V007.y", "V008.y", "V009.y", "V010", "V011.y", "V012", "V013", "V014.x", "V015", "V016", "V017.x", "V001", "V002.y.y", "V004", "V014.y", "V011", "V017.y", "V050", "V052", "V113", "V119", "V125", "V131", "V137", "V143", "V149", "V154", "V160", "V202", "V203", "V204", "V205", "V206", "V207")
+```
+
+```{r}
+#carregar pacotes
+library(dplyr)
+```
+
+```{r}
+#verificar se as variáveis existem no dataframe
+variaveis_existentes <- intersect(variaveis_numericas, names(Matriz_Total_SP))
+```
+
+```{r}
+# Substituir "X" por 0 e converter apenas colunas que contenham dados numéricos ou "X"
+Matriz_Total_SP[variaveis_existentes] <- Matriz_Total_SP[variaveis_existentes] %>%
+  mutate(across(everything(), ~ ifelse(. == "X", 0, suppressWarnings(as.numeric(as.character(.))))))
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V202 e V203
+Matriz_Total_SP$soma_V202eV203 <- rowSums(Matriz_Total_SP[c("V202", "V203")], na.rm = TRUE)
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V204 e V205
+Matriz_Total_SP$soma_V204eV205 <- rowSums(Matriz_Total_SP[c("V204", "V205")], na.rm = TRUE)
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V206 e V207
+Matriz_Total_SP$soma_V206eV207 <- rowSums(Matriz_Total_SP[c("V206", "V207")], na.rm = TRUE)
+```
+
+```{r}
+# Somar valores da variável V002.x agrupando por AREA_POND
+AP_V002.x <- Matriz_Total_SP %>%
+  group_by(AREA_POND) %>%
+  summarise(Soma_V002.x_AP = sum(V002.x, na.rm = TRUE))
+```
+
+```{r}
+# Lista das variáveis que você deseja somar
+variaveis <- c("V002.x", "V023.x", "V037", "V038", "V039", "V040", "V041.x", "V046", "V101", "V102", "V103", "V233", "V007.x", "V008.x", "V009.x", "V011.x", "V023.y", "V041.y", "V001.x", "V109", "V001.y", "V002.y", "V003.x", "V004.x", "V005.x", "V006.x", "V002.x.x", "V003.y", "V004.y", "V005.y", "V006.y", "V007.y", "V008.y", "V009.y", "V010", "V011.y", "V012", "V013", "V014.x", "V015", "V016", "V017.x", "V001", "V002.y.y", "V004", "V014.y", "V011", "V017.y", "V050", "V052", "V113", "V119", "V125", "V131", "V137", "V143", "V149", "V154", "V160", "V202", "V203", "V204", "V205", "V206", "V207", "soma_V202eV203", "soma_V204eV205", "soma_V206eV207")
+
+# Somar todas as variáveis listadas por AREA_POND
+AP_variaveis <- Matriz_Total_SP %>%
+  group_by(AREA_POND) %>%
+  summarise(across(all_of(variaveis), ~ sum(.x, na.rm = TRUE), .names = "Soma_{.col}"))
+```
+
+```{r}
+#Criar um banco de dados final, esse terá as informações da "Matriz" (variáveis "TIPO", "NM_MUNICIP", "NM_MICRO", "NM_MESO") e as informações da "AP_variaveis"
+
+# OBSERVAÇÃO: Se fizer assim, vamos ter todas as linhas, até aquelas que não tem nas planilhas do CENSO UNIVERSO (2.718 LINHAS)
+
+# Selecionar as colunas desejadas da tabela Matriz
+Matriz_selecionada <- Matriz[, c("AREA_POND", "TIPO", "NM_MUNICIP", "NM_MICRO", "NM_MESO")]
+
+# Remover as linhas duplicadas
+Matriz_selecionada <- unique(Matriz_selecionada)
+
+# Realizar o merge com base na variável 'AREA_POND'
+Matriz_SPtotal_AP <- merge(Matriz_selecionada, AP_variaveis, by = "AREA_POND", all = FALSE)
+
+# Verificar as primeiras linhas do novo banco de dados
+head(Matriz_SPtotal_AP)
+
+# Exportar em planilha excel. 
+write.xlsx(Matriz_SPtotal_AP, "Matriz_SPtotal_AP.xlsx")
+```
