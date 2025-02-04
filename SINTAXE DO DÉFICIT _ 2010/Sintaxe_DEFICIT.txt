@@ -1,0 +1,942 @@
+/* PASSO 1
+
+/*NO BANCO QUE CONTEM INFORMAÇÕES DOS DOMICILIOS
+
+/*#######################DOMICILIOS PRECÁRIOS########################
+
+/*DOMICÍLIOS IMPROVISADOS | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF (V4001 = 5).
+RECODE V4001 (5=1) INTO IMPROVISADOS.
+END IF.
+VARIABLE LABELS IMPROVISADOS 'IMPROVISADOS'.
+EXECUTE.
+
+/*DOMICÍLIOS RÚSTICOS | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF (V0202 >= 5).
+RECODE V0202 (5 thru HIGHEST=1) (LOWEST thru 4=2) INTO RUSTICO.
+END IF.
+VARIABLE LABELS RUSTICO 'RUSTICO'.
+EXECUTE.
+
+/*DOMICÍLIOS PRECÁRIOS | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+IF (IMPROVISADOS=1) DOMPREC=1.
+IF (RUSTICO=1) DOMPREC=1.
+VARIABLE LABELS DOMPREC 'DF-DOMICILIOS PRECARIOS'.
+EXECUTE.
+
+
+/*########################################################################################################################################
+/*#######################COABITAÇÃO FAMILIAR########################
+
+/*COABITAÇÃO POR CÔMODOS | banco de dados de domicílios  | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF  (V0201 = 1 | V0201 = 2 | V0201 = 3 | V0201 = 5 | V0201 = 6).
+RECODE V4002 (14=1) (ELSE=2) INTO FAMCONVCOM.
+END IF.
+VARIABLE LABELS  FAMCONVCOM 'FAMCONVCOM-FAMÍLIA CONVIVENTE EM CÔMODO'.
+EXECUTE.
+
+
+/*NO BANCO QUE CONTEM INFORMAÇÕES DAS PESSOAS
+
+/*A PARTIR DAQUI PRECISA DO BANCO DE DADOS DE PESSOAS PARA CONTINUAR###############
+/*#########################################################################################
+/*FAZER ESSE PASSO NO BANCO DE DADOS DE PESSOAS
+/*FAMÍLIAS CONVIVENTES | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+DATASET ACTIVATE Conjunto_de_dados2.
+RECODE V5020 (2 thru 9=1) (ELSE=SYSMIS) INTO FAMCONV. 
+VARIABLE LABELS  FAMCONV 'FAMCONV-FAMÍLIA CONVIVENTE'.
+EXECUTE.
+
+
+*/ORDEM LÓGICA DA FAMÍLIA | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+/*FAZER ESSE PASSO NO BANCO DE DADOS DE PESSOAS
+
+DATASET ACTIVATE Conjunto_de_dados2.
+RECODE V5130 (1=1) (ELSE=SYSMIS) INTO ORDFAM.
+VARIABLE LABELS ORDFAM 'ORDFAM-ORDEM DA FAMÍLIA'.
+EXECUTE.
+
+
+*/RELAÇÃO COM RESPONSÁVEL PELO DOMICÍLIO | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+/*FAZER ESSE PASSO NO BANCO DE DADOS DE PESSOAS
+
+DATASET ACTIVATE Conjunto_de_dados2.
+RECODE V0502 (4 thru 17=1) (ELSE=SYSMIS) INTO RELRESP.
+VARIABLE LABELS  RELRESP 'RELRESP-RELAÇÃO RESPONSÁVEL PELO DOMICÍLIO'.
+EXECUTE.
+
+*/COABITAÇÃO POR CONVIVÊNCIA FAMILIAR
+
+DATASET ACTIVATE Conjunto_de_dados2.
+COMPUTE COABCONVFAM=FAMCONV + RELRESP = 2.
+VARIABLE LABELS  COABCONVFAM 'DF-COABITAÇÃO FAMILIAR'.
+EXECUTE.
+
+
+/*########################################################################################################################################
+/*#######################ÔNUS EXCESSIVO COM ALUGUEL########################
+
+/*RAZÃO ENTRE VALOR DO ALUGUEL E RENDIMENTO DOMICILIAR | *ATENÇÃO AO NOME DO BANCO DE DADOS NO COMANDO DATASET ACTIVATE*
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF V6529 > 0.
+    COMPUTE RAZALGREND = V2011 / V6529.
+ELSE.
+    COMPUTE RAZALGREND = SYSMIS.
+END IF.
+VARIABLE LABELS RAZALGREND 'RAZALGREND - RAZÃO ALUGUEL RENDA DOMICILIAR'.
+EXECUTE.
+
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF  (V0201 = 3 & RAZALGREND > 0.3 & V6530 <= 3).
+RECODE V1006 (1=1) (2=SYSMIS) INTO ONUSEXC.
+END IF.
+VARIABLE LABELS  ONUSEXC 'DF-ÔNUS EXCESSIVO COM ALUGUEL'.
+EXECUTE.
+
+
+/*########################################################################################################################################
+/*#######################ADENSAMENTO EXCESSIVO DE DOMICÍLIOS ALUGADOS########################
+
+/*ADENSAMENTO EXCESSIVO DE DOMICÍLIOS ALUGADOS
+
+DATASET ACTIVATE Conjunto_de_dados1.
+DO IF  (V6204 > 3).
+RECODE V0201 (3=1) (ELSE=SYSMIS) INTO ADENS.
+END IF.
+VARIABLE LABELS  ADENS 'DF-ADENSAMENTO EXCESSIVO DE DOMICÍLIOS ALUGADOS'.
+EXECUTE.
+
+/*########################################################################################################################################
+/*########################################################################################################################################
+
+/* PASSO 2 | IDENTIFICAR E MARCAR CASOS DUPLICADOS
+
+/*#########################################NO BANCO DE DADOS DE PESSOAS#######################
+
+/* Identificar casos duplicados.
+/* SORT CASES: organiza os casos no dataset em ordem crescente (A de ascending) com base nas variáveis V0300, V0502 e V5020.
+/*MATCH FILES é usado para marcar o primeiro (PrimaryFirst) e o último (PrimaryLast) caso de cada grupo baseado na variável-chave V0300.
+/* /FIRST=PrimaryFirst:A variável PrimaryFirst será 1 para o primeiro caso de cada grupo e 0 para os demais
+/* /LAST=PrimaryLast: A variável PrimaryLast será 1 para o último caso de cada grupo e 0 para os demais
+/* DO IF (PrimaryFirst): /*Se for o primeiro caso do grupo (PrimaryFirst = 1), a variável MatchSequence é calculada como 1 - PrimaryLast. Isso assegura que a sequência inicie em 1. Para os outros casos no grupo, incrementa MatchSequence em 1.
+/* LEAVE MatchSequence: /*Faz com que o valor atual de MatchSequence seja mantido entre os casos enquanto o SPSS processa o arquivo.
+/* FORMATS  MatchSequence (f7): Define o formato de exibição de MatchSequence como um número de 7 dígitos. Isso é apenas uma configuração de como os números aparecem na tabela.
+/* COMPUTE  InDupGrp=MatchSequence>0: Reorganiza os casos com base em InDupGrp em ordem decrescente (D de descending). Assim, os grupos duplicados ficam juntos no final ou no início do dataset.
+/* SORT CASES InDupGrp(D): Remove as variáveis temporárias (PrimaryLast, InDupGrp, MatchSequence) do dataset. Isso limpa o dataset para manter apenas as variáveis necessárias.
+
+DATASET ACTIVATE Conjunto_de_dados2.
+SORT CASES BY V0300(A) V0502(A) V5020(A).
+MATCH FILES 
+  /FILE=*
+  /BY V0300
+  /FIRST=PrimaryFirst
+  /LAST=PrimaryLast.
+DO IF (PrimaryFirst).
+COMPUTE  MatchSequence=1-PrimaryLast.
+ELSE.
+COMPUTE  MatchSequence=MatchSequence+1.
+END IF.
+LEAVE  MatchSequence.
+FORMATS  MatchSequence (f7).
+COMPUTE  InDupGrp=MatchSequence>0.
+SORT CASES InDupGrp(D).
+MATCH FILES
+  /FILE=*
+  /DROP=PrimaryLast InDupGrp MatchSequence.
+VARIABLE LABELS  PrimaryFirst 'Indicador de cada primeiro caso emparelhado como Principal'.
+VALUE LABELS  PrimaryFirst 0 'Caso duplicado' 1 'Caso principal'.
+VARIABLE LEVEL  PrimaryFirst (ORDINAL).
+FREQUENCIES VARIABLES=PrimaryFirst.
+EXECUTE.
+
+/*########################################################################################################################################
+/*########################################################################################################################################
+
+/* PASSO 3 | soma a variável COABCONVFAM para cada grupo de V0300 (domicílio)
+
+/*#########################################NO BANCO DE DADOS DE PESSOAS#######################
+/* SORT CASES BY V0300: Ordenando os dados pela variável de quebra.
+/* AGGREGATE: Agregação das variáveis com base na variável de quebra V0300.
+/* /OUTFILE=* MODE=ADDVARIABLES: As variáveis agregadas serão adicionadas ao dataset ativo
+/* /PRESORTED: Indica que os casos já estão ordenados pela variável de quebra (V0300)
+/* /BREAK=V0300: Define V0300 como a variável de quebra
+/* /COAB_sum=SUM(COABCONVFAM): Soma dos valores da variável COAB
+/* /N_BREAK=N.:Número de casos em cada grupo
+
+DATASET ACTIVATE  Conjunto_de_dados2.
+SORT CASES BY V0300.
+AGGREGATE
+  /OUTFILE=* MODE=ADDVARIABLES
+  /PRESORTED
+  /BREAK=V0300
+  /COAB_sum=SUM(COABCONVFAM)
+  /N_BREAK=N.
+EXECUTE.
+
+/*########################################################################################################################################
+/*########################################################################################################################################
+
+/* PASSO 4 | SEPARAR OS MUNICÍPIOS POR GRUPOS DEFINIDOS PELA FJP PARA CALCULO DO FATOR RETOR
+
+/*#########################################UNIR OS BANCOS DE DADOS#######################
+
+/*NO BANCO QUE CONTEM INFORMAÇÕES DAS PESSOAS
+/* NO CASO DO SP1
+
+STRING Grupo (A2).  /* Declara a variável Grupo como string de 2 caracteres */
+RECODE V0002
+(3501608 = 'G3')
+(3503208 = 'G3')
+(3506003 = 'G3')
+(3509502 = 'G3')
+(3516200 = 'G3')
+(3518701 = 'G3')
+(3520509 = 'G3')
+(3524402 = 'G3')
+(3525904 = 'G3')
+(3526902 = 'G3')
+(3529005 = 'G3')
+(3538709 = 'G3')
+(3541000 = 'G3')
+(3541406 = 'G3')
+(3543402 = 'G3')
+(3548500 = 'G3')
+(3548906 = 'G3')
+(3549805 = 'G3')
+(3549904 = 'G3')
+(3551009 = 'G3')
+(3552205 = 'G3')
+(3552403 = 'G3')
+(3554102 = 'G3')
+(3500105 = 'G4')
+(3500204 = 'G4')
+(3500303 = 'G4')
+(3500402 = 'G4')
+(3500501 = 'G4')
+(3500550 = 'G4')
+(3500600 = 'G4')
+(3500709 = 'G4')
+(3500758 = 'G4')
+(3500808 = 'G4')
+(3500907 = 'G4')
+(3501004 = 'G4')
+(3501103 = 'G4')
+(3501152 = 'G4')
+(3501202 = 'G4')
+(3501301 = 'G4')
+(3501400 = 'G4')
+(3501509 = 'G4')
+(3501707 = 'G4')
+(3501806 = 'G4')
+(3501905 = 'G4')
+(3502002 = 'G4')
+(3502101 = 'G4')
+(3502200 = 'G4')
+(3502309 = 'G4')
+(3502408 = 'G4')
+(3502507 = 'G4')
+(3502606 = 'G4')
+(3502705 = 'G4')
+(3502754 = 'G4')
+(3502804 = 'G4')
+(3502903 = 'G4')
+(3503000 = 'G4')
+(3503109 = 'G4')
+(3503158 = 'G4')
+(3503307 = 'G4')
+(3503356 = 'G4')
+(3503406 = 'G4')
+(3503505 = 'G4')
+(3503604 = 'G4')
+(3503703 = 'G4')
+(3503802 = 'G4')
+(3503950 = 'G4')
+(3504008 = 'G4')
+(3504107 = 'G4')
+(3504206 = 'G4')
+(3504305 = 'G4')
+(3504404 = 'G4')
+(3504503 = 'G4')
+(3504602 = 'G4')
+(3504701 = 'G4')
+(3504800 = 'G4')
+(3504909 = 'G4')
+(3505005 = 'G4')
+(3505104 = 'G4')
+(3505203 = 'G4')
+(3505302 = 'G4')
+(3505351 = 'G4')
+(3505401 = 'G4')
+(3505500 = 'G4')
+(3505609 = 'G4')
+(3505807 = 'G4')
+(3505906 = 'G4')
+(3506102 = 'G4')
+(3506201 = 'G4')
+(3506300 = 'G4')
+(3506359 = 'G4')
+(3506409 = 'G4')
+(3506508 = 'G4')
+(3506706 = 'G4')
+(3506805 = 'G4')
+(3506904 = 'G4')
+(3507001 = 'G4')
+(3507100 = 'G4')
+(3507159 = 'G4')
+(3507209 = 'G4')
+(3507308 = 'G4')
+(3507407 = 'G4')
+(3507456 = 'G4')
+(3507506 = 'G4')
+(3507605 = 'G4')
+(3507704 = 'G4')
+(3507753 = 'G4')
+(3507803 = 'G4')
+(3507902 = 'G4')
+(3508009 = 'G4')
+(3508108 = 'G4')
+(3508207 = 'G4')
+(3508306 = 'G4')
+(3508405 = 'G4')
+(3508504 = 'G4')
+(3508603 = 'G4')
+(3508702 = 'G4')
+(3508801 = 'G4')
+(3508900 = 'G4')
+(3509106 = 'G4')
+(3509254 = 'G4')
+(3509304 = 'G4')
+(3509403 = 'G4')
+(3509452 = 'G4')
+(3509601 = 'G4')
+(3509700 = 'G4')
+(3509809 = 'G4')
+(3509908 = 'G4')
+(3509957 = 'G4')
+(3510005 = 'G4')
+(3510104 = 'G4')
+(3510153 = 'G4')
+(3510203 = 'G4')
+(3510302 = 'G4')
+(3510401 = 'G4')
+(3510500 = 'G4')
+(3510708 = 'G4')
+(3510807 = 'G4')
+(3510906 = 'G4')
+(3511003 = 'G4')
+(3511102 = 'G4')
+(3511201 = 'G4')
+(3511300 = 'G4')
+(3511409 = 'G4')
+(3511508 = 'G4')
+(3511607 = 'G4')
+(3511706 = 'G4')
+(3557204 = 'G4')
+(3511904 = 'G4')
+(3512001 = 'G4')
+(3512100 = 'G4')
+(3512209 = 'G4')
+(3512308 = 'G4')
+(3512407 = 'G4')
+(3512506 = 'G4')
+(3512605 = 'G4')
+(3512704 = 'G4')
+(3512803 = 'G4')
+(3512902 = 'G4')
+(3513108 = 'G4')
+(3513207 = 'G4')
+(3513306 = 'G4')
+(3513405 = 'G4')
+(3513504 = 'G4')
+(3513603 = 'G4')
+(3513702 = 'G4')
+(3513850 = 'G4')
+(3513900 = 'G4')
+(3514007 = 'G4')
+(3514106 = 'G4')
+(3514205 = 'G4')
+(3514304 = 'G4')
+(3514403 = 'G4')
+(3514502 = 'G4')
+(3514601 = 'G4')
+(3514700 = 'G4')
+(3514809 = 'G4')
+(3514908 = 'G4')
+(3514924 = 'G4')
+(3514957 = 'G4')
+(3515129 = 'G4')
+(3515152 = 'G4')
+(3515186 = 'G4')
+(3515194 = 'G4')
+(3557303 = 'G4')
+(3515301 = 'G4')
+(3515202 = 'G4')
+(3515350 = 'G4')
+(3515400 = 'G4')
+(3515608 = 'G4')
+(3515509 = 'G4')
+(3515657 = 'G4')
+(3515806 = 'G4')
+(3515905 = 'G4')
+(3516002 = 'G4')
+(3516101 = 'G4')
+(3516507 = 'G4')
+(3516606 = 'G4')
+(3516705 = 'G4')
+(3516804 = 'G4')
+(3516853 = 'G4')
+(3516903 = 'G4')
+(3517000 = 'G4')
+(3517109 = 'G4')
+(3517208 = 'G4')
+(3517307 = 'G4')
+(3517406 = 'G4')
+(3517505 = 'G4')
+(3517604 = 'G4')
+(3517703 = 'G4')
+(3517802 = 'G4')
+(3517901 = 'G4')
+(3518008 = 'G4')
+(3518107 = 'G4')
+(3518206 = 'G4')
+(3518404 = 'G4')
+(3518503 = 'G4')
+(3518602 = 'G4')
+(3518859 = 'G4')
+(3518909 = 'G4')
+(3519006 = 'G4')
+(3519055 = 'G4')
+(3519071 = 'G4')
+(3519105 = 'G4')
+(3519204 = 'G4')
+(3519253 = 'G4')
+(3519303 = 'G4')
+(3519402 = 'G4')
+(3519501 = 'G4')
+(3519600 = 'G4')
+(3519709 = 'G4')
+(3519808 = 'G4')
+(3519907 = 'G4')
+(3520004 = 'G4')
+(3520103 = 'G4')
+(3520202 = 'G4')
+(3520301 = 'G4')
+(3520426 = 'G4')
+(3520442 = 'G4')
+(3520400 = 'G4')
+(3520608 = 'G4')
+(3520707 = 'G4')
+(3520806 = 'G4')
+(3520905 = 'G4')
+(3521002 = 'G4')
+(3521101 = 'G4')
+(3521150 = 'G4')
+(3521200 = 'G4')
+(3521309 = 'G4')
+(3521408 = 'G4')
+(3521507 = 'G4')
+(3521606 = 'G4')
+(3521705 = 'G4')
+(3521804 = 'G4')
+(3521903 = 'G4')
+(3522000 = 'G4')
+(3522109 = 'G4')
+(3522158 = 'G4')
+(3522307 = 'G4')
+(3522406 = 'G4')
+(3522604 = 'G4')
+(3522653 = 'G4')
+(3522703 = 'G4')
+(3522802 = 'G4')
+(3522901 = 'G4')
+(3523008 = 'G4')
+(3523206 = 'G4')
+(3523305 = 'G4')
+(3523404 = 'G4')
+(3523503 = 'G4')
+(3523602 = 'G4')
+(3523701 = 'G4')
+(3523800 = 'G4')
+(3523909 = 'G4')
+(3524006 = 'G4')
+(3524105 = 'G4')
+(3524204 = 'G4')
+(3524303 = 'G4')
+(3524501 = 'G4')
+(3524600 = 'G4')
+(3524709 = 'G4')
+(3524808 = 'G4')
+(3524907 = 'G4')
+(3525102 = 'G4')
+(3525201 = 'G4')
+(3525300 = 'G4')
+(3525409 = 'G4')
+(3525508 = 'G4')
+(3525607 = 'G4')
+(3525706 = 'G4')
+(3525805 = 'G4')
+(3525854 = 'G4')
+(3526001 = 'G4')
+(3526100 = 'G4')
+(3526308 = 'G4')
+(3526407 = 'G4')
+(3526506 = 'G4')
+(3526605 = 'G4')
+(3526704 = 'G4')
+(3526803 = 'G4')
+(3527009 = 'G4')
+(3527108 = 'G4')
+(3527207 = 'G4')
+(3527256 = 'G4')
+(3527306 = 'G4')
+(3527405 = 'G4')
+(3527504 = 'G4')
+(3527603 = 'G4')
+(3527702 = 'G4')
+(3527801 = 'G4')
+(3527900 = 'G4')
+(3528007 = 'G4')
+(3528106 = 'G4')
+(3528205 = 'G4')
+(3528304 = 'G4')
+(3528403 = 'G4')
+(3528601 = 'G4')
+(3528700 = 'G4')
+(3528809 = 'G4')
+(3528858 = 'G4')
+(3528908 = 'G4')
+(3529104 = 'G4')
+(3529203 = 'G4')
+(3529302 = 'G4')
+(3529500 = 'G4')
+(3529609 = 'G4')
+(3529658 = 'G4')
+(3529708 = 'G4')
+(3529807 = 'G4')
+(3530003 = 'G4')
+(3529906 = 'G4')
+(3530102 = 'G4')
+(3530201 = 'G4')
+(3530300 = 'G4')
+(3530409 = 'G4')
+(3530508 = 'G4')
+(3530706 = 'G4')
+(3530805 = 'G4')
+(3530904 = 'G4')
+(3531001 = 'G4')
+(3531100 = 'G4')
+(3531209 = 'G4')
+(3531308 = 'G4')
+(3531407 = 'G4')
+(3531506 = 'G4')
+(3531605 = 'G4')
+(3531803 = 'G4')
+(3531704 = 'G4')
+(3531902 = 'G4')
+(3532009 = 'G4')
+(3532058 = 'G4')
+(3532108 = 'G4')
+(3532157 = 'G4')
+(3532207 = 'G4')
+(3532306 = 'G4')
+(3532405 = 'G4')
+(3532504 = 'G4')
+(3532603 = 'G4')
+(3532702 = 'G4')
+(3532801 = 'G4')
+(3532827 = 'G4')
+(3532843 = 'G4')
+(3532868 = 'G4')
+(3532900 = 'G4')
+(3533007 = 'G4')
+(3533106 = 'G4')
+(3533205 = 'G4')
+(3533304 = 'G4')
+(3533403 = 'G4')
+(3533254 = 'G4')
+(3533502 = 'G4')
+(3533601 = 'G4')
+(3533700 = 'G4')
+(3533809 = 'G4')
+(3533908 = 'G4')
+(3534005 = 'G4')
+(3534104 = 'G4')
+(3534203 = 'G4')
+(3534302 = 'G4')
+(3534500 = 'G4')
+(3534609 = 'G4')
+(3534708 = 'G4')
+(3534807 = 'G4')
+(3534757 = 'G4')
+(3534906 = 'G4')
+(3535002 = 'G4')
+(3535101 = 'G4')
+(3535200 = 'G4')
+(3535309 = 'G4')
+(3535408 = 'G4')
+(3535507 = 'G4')
+(3535606 = 'G4')
+(3535705 = 'G4')
+(3535804 = 'G4')
+(3535903 = 'G4')
+(3536000 = 'G4')
+(3536109 = 'G4')
+(3536208 = 'G4')
+(3536257 = 'G4')
+(3536307 = 'G4')
+(3536406 = 'G4')
+(3536505 = 'G4')
+(3536570 = 'G4')
+(3536604 = 'G4')
+(3536703 = 'G4')
+(3536802 = 'G4')
+(3536901 = 'G4')
+(3537008 = 'G4')
+(3537107 = 'G4')
+(3537156 = 'G4')
+(3537206 = 'G4')
+(3537305 = 'G4')
+(3537404 = 'G4')
+(3537503 = 'G4')
+(3537602 = 'G4')
+(3537701 = 'G4')
+(3537800 = 'G4')
+(3537909 = 'G4')
+(3538006 = 'G4')
+(3538105 = 'G4')
+(3538204 = 'G4')
+(3538303 = 'G4')
+(3538501 = 'G4')
+(3538600 = 'G4')
+(3538808 = 'G4')
+(3538907 = 'G4')
+(3539004 = 'G4')
+(3539202 = 'G4')
+(3539301 = 'G4')
+(3539400 = 'G4')
+(3539509 = 'G4')
+(3539608 = 'G4')
+(3539707 = 'G4')
+(3539905 = 'G4')
+(3540002 = 'G4')
+(3540101 = 'G4')
+(3540200 = 'G4')
+(3540259 = 'G4')
+(3540309 = 'G4')
+(3540408 = 'G4')
+(3540507 = 'G4')
+(3540606 = 'G4')
+(3540705 = 'G4')
+(3540754 = 'G4')
+(3540804 = 'G4')
+(3540853 = 'G4')
+(3540903 = 'G4')
+(3541059 = 'G4')
+(3541109 = 'G4')
+(3541208 = 'G4')
+(3541307 = 'G4')
+(3541505 = 'G4')
+(3541604 = 'G4')
+(3541653 = 'G4')
+(3541703 = 'G4')
+(3541802 = 'G4')
+(3541901 = 'G4')
+(3542008 = 'G4')
+(3542107 = 'G4')
+(3542206 = 'G4')
+(3542305 = 'G4')
+(3542404 = 'G4')
+(3542503 = 'G4')
+(3542602 = 'G4')
+(3542701 = 'G4')
+(3542800 = 'G4')
+(3542909 = 'G4')
+(3543006 = 'G4')
+(3543105 = 'G4')
+(3543204 = 'G4')
+(3543238 = 'G4')
+(3543253 = 'G4')
+(3543600 = 'G4')
+(3543709 = 'G4')
+(3543808 = 'G4')
+(3543907 = 'G4')
+(3544004 = 'G4')
+(3544202 = 'G4')
+(3543501 = 'G4')
+(3544251 = 'G4')
+(3544301 = 'G4')
+(3544400 = 'G4')
+(3544509 = 'G4')
+(3544608 = 'G4')
+(3544707 = 'G4')
+(3544806 = 'G4')
+(3544905 = 'G4')
+(3545100 = 'G4')
+(3545159 = 'G4')
+(3545209 = 'G4')
+(3545308 = 'G4')
+(3545407 = 'G4')
+(3545506 = 'G4')
+(3545605 = 'G4')
+(3545704 = 'G4')
+(3545803 = 'G4')
+(3546009 = 'G4')
+(3546108 = 'G4')
+(3546207 = 'G4')
+(3546256 = 'G4')
+(3546306 = 'G4')
+(3546405 = 'G4')
+(3546504 = 'G4')
+(3546603 = 'G4')
+(3546702 = 'G4')
+(3546900 = 'G4')
+(3547007 = 'G4')
+(3547106 = 'G4')
+(3547502 = 'G4')
+(3547403 = 'G4')
+(3547601 = 'G4')
+(3547650 = 'G4')
+(3547205 = 'G4')
+(3547700 = 'G4')
+(3547908 = 'G4')
+(3548005 = 'G4')
+(3548054 = 'G4')
+(3548104 = 'G4')
+(3548203 = 'G4')
+(3548302 = 'G4')
+(3548401 = 'G4')
+(3548609 = 'G4')
+(3549003 = 'G4')
+(3549102 = 'G4')
+(3549201 = 'G4')
+(3549250 = 'G4')
+(3549300 = 'G4')
+(3549409 = 'G4')
+(3549508 = 'G4')
+(3549607 = 'G4')
+(3549706 = 'G4')
+(3550001 = 'G4')
+(3550100 = 'G4')
+(3550209 = 'G4')
+(3550407 = 'G4')
+(3550506 = 'G4')
+(3550605 = 'G4')
+(3550704 = 'G4')
+(3550803 = 'G4')
+(3550902 = 'G4')
+(3551108 = 'G4')
+(3551207 = 'G4')
+(3551306 = 'G4')
+(3551405 = 'G4')
+(3551603 = 'G4')
+(3551504 = 'G4')
+(3551702 = 'G4')
+(3551801 = 'G4')
+(3551900 = 'G4')
+(3552007 = 'G4')
+(3552106 = 'G4')
+(3552304 = 'G4')
+(3552551 = 'G4')
+(3552601 = 'G4')
+(3552700 = 'G4')
+(3552908 = 'G4')
+(3553005 = 'G4')
+(3553104 = 'G4')
+(3553203 = 'G4')
+(3553302 = 'G4')
+(3553401 = 'G4')
+(3553500 = 'G4')
+(3553609 = 'G4')
+(3553658 = 'G4')
+(3553708 = 'G4')
+(3553807 = 'G4')
+(3553856 = 'G4')
+(3553906 = 'G4')
+(3553955 = 'G4')
+(3554003 = 'G4')
+(3554201 = 'G4')
+(3554300 = 'G4')
+(3554409 = 'G4')
+(3554508 = 'G4')
+(3554607 = 'G4')
+(3554656 = 'G4')
+(3554706 = 'G4')
+(3554755 = 'G4')
+(3554805 = 'G4')
+(3554904 = 'G4')
+(3554953 = 'G4')
+(3555000 = 'G4')
+(3555109 = 'G4')
+(3555208 = 'G4')
+(3555307 = 'G4')
+(3555356 = 'G4')
+(3555406 = 'G4')
+(3555505 = 'G4')
+(3555604 = 'G4')
+(3555703 = 'G4')
+(3555802 = 'G4')
+(3555901 = 'G4')
+(3556008 = 'G4')
+(3556107 = 'G4')
+(3556206 = 'G4')
+(3556305 = 'G4')
+(3556354 = 'G4')
+(3556404 = 'G4')
+(3556503 = 'G4')
+(3556602 = 'G4')
+(3556701 = 'G4')
+(3556800 = 'G4')
+(3556909 = 'G4')
+(3556958 = 'G4')
+(3557006 = 'G4')
+(3557105 = 'G4')
+(3557154 = 'G4')
+  (ELSE = 'OT')  /* Caso queira um valor padrão, como 'OT' para "outro" */
+  INTO Grupo.
+EXECUTE.
+
+COMPUTE NovoValor = 0.
+IF (Grupo = "G4") NovoValor = 0.575.
+IF (Grupo = "G3") NovoValor = 0.602.
+EXECUTE.
+
+/* NO CASO DO SP2
+
+STRING Grupo (A2).  /* Declara a variável Grupo como string de 2 caracteres */
+RECODE V0002
+(3503901 = 'G1')
+(3505708 = 'G1')
+(3506607 = 'G1')
+(3509007 = 'G1')
+(3509205 = 'G1')
+(3510609 = 'G1')
+(3513009 = 'G1')
+(3513801 = 'G1')
+(3515004 = 'G1')
+(3515103 = 'G1')
+(3515707 = 'G1')
+(3516309 = 'G1')
+(3516408 = 'G1')
+(3518305 = 'G1')
+(3518800 = 'G1')
+(3522208 = 'G1')
+(3522505 = 'G1')
+(3523107 = 'G1')
+(3525003 = 'G1')
+(3526209 = 'G1')
+(3528502 = 'G1')
+(3529401 = 'G1')
+(3530607 = 'G1')
+(3534401 = 'G1')
+(3539103 = 'G1')
+(3539806 = 'G1')
+(3543303 = 'G1')
+(3544103 = 'G1')
+(3545001 = 'G1')
+(3546801 = 'G1')
+(3547304 = 'G1')
+(3547809 = 'G1')
+(3548708 = 'G1')
+(3548807 = 'G1')
+(3549953 = 'G1')
+(3550308 = 'G1')
+(3552502 = 'G1')
+(3552809 = 'G1')
+(3556453 = 'G1')
+  (ELSE = 'OT')  /* Caso queira um valor padrão, como 'OT' para "outro" */
+  INTO Grupo.
+EXECUTE.
+
+COMPUTE NovoValor = 0.
+IF (Grupo = "G1") NovoValor = 0.602.
+EXECUTE.
+
+
+/* MULTIPLICA E CRIA A VARIAVEL COABCONVFAM_FATOR
+/*MENU: Transformar > Calcular variável > COAB_sum * NovoValor > OK 
+/*Observação: Variável de destino COABCONVFAM_FATOR
+
+
+/*########################################################################################################################################
+/*########################################################################################################################################
+
+/* PASSO 5 | LIMPAR O BANCO DE DADOS DE PESSOAS PARA O MERGE NO BANCO DE DADOS DE DOMICÍLIOS
+
+/*#########################################UNIR OS BANCOS DE DADOS#######################
+
+/*NO BANCO QUE CONTEM INFORMAÇÕES DAS PESSOAS
+
+DATASET ACTIVATE Conjunto_de_dados2.
+SORT CASES BY V0300.
+/* Marcar as duplicatas.
+COMPUTE DupFlag = 0.
+IF (V0300 = LAG(V0300)) DupFlag = 1.
+EXECUTE.
+
+* Excluir linhas onde DupFlag é 1 (duplicadas).
+FILTER OFF.
+USE ALL.
+SELECT IF (DupFlag = 0).
+EXECUTE.
+
+/*SALVAR UM BANCO DE DADOS NOVO, SALVEI COM O NOME 'SP1_PESURB_LIMPO' OU 'SP2_PESURB_LIMPO'
+/*ABRA O BANCO DE DADOS DE DOMICÍLIOS
+
+/*NO BANCO DE DOMICÍLIOS:
+
+/*ORDENAR A VARIÁVEL V0300 POR ORDEM CRESCENTE E O BANCO DE PESSOAS TAMBÉM, V0300 POR ORDEM CRESCENTE 
+/* MERGE POR COMANDO: DADOS > MESCLAR ARQUIVOS > ADICIONAR VARIÁVEIS
+/* SELECIONA O BANCO DE DADOS QUE QUER MESCLAR E SELECIONA SE QUER EXCLUIR ALGUMA VARIÁVEL> OK.
+
+/*SALVAR UM BANCO DE DADOS NOVO, SALVEI COM O NOME 'SP1_DEFICIT'
+
+
+/* PASSO 6 | SOMAR O DÉFICIT TOTAL
+
+* Criar uma nova variável para armazenar o componente prioritário do déficit.
+COMPUTE DEFICIT_PRIORITARIO = 0.
+
+* Priorizar domicílios precários (DOMPREC).
+IF (DOMPREC = 1) DEFICIT_PRIORITARIO = 1.
+
+* Priorizar coabitação familiar (COABCONVFAM_FATOR), se não for precário.
+IF (DEFICIT_PRIORITARIO = 0 AND COABCONVFAM_FATOR >= 1) DEFICIT_PRIORITARIO = 2.
+
+* Priorizar ônus excessivo (ONUSEXC), se não for precário nem coabitação.
+IF (DEFICIT_PRIORITARIO = 0 AND ONUSEXC = 1) DEFICIT_PRIORITARIO = 3.
+
+* Priorizar adensamento excessivo (ADENS), se não cair nas categorias anteriores.
+IF (DEFICIT_PRIORITARIO = 0 AND ADENS = 1) DEFICIT_PRIORITARIO = 4.
+
+EXECUTE.
+
+* Verificar quantos domicílios foram atribuídos a cada componente.
+FREQUENCIES VARIABLES=DEFICIT_PRIORITARIO /FORMAT=NOTABLE /BARCHART=NONE.
+
+* Criar uma variável para marcar domicílios com déficit considerando a priorização.
+COMPUTE DEFICIT_TOTAL = (DEFICIT_PRIORITARIO > 0).
+EXECUTE.
+
+* Obter a soma total dos domicílios em déficit.
+DESCRIPTIVES VARIABLES=DEFICIT_TOTAL /STATISTICS=SUM.
+
+
+/* PASSO 7 | CRIAR AS VARIÁVEIS DO DÉFICIT 
+
+COMPUTE DOMICILIOS_PRECARIOS = (DEFICIT_PRIORITARIO = 1).
+COMPUTE COABITACAO = (DEFICIT_PRIORITARIO = 2).
+COMPUTE ONUS_EXCESSIVO = (DEFICIT_PRIORITARIO = 3).
+COMPUTE ADENSAMENTO = (DEFICIT_PRIORITARIO = 4).
+EXECUTE.
+
+
