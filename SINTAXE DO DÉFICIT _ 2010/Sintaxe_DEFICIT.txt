@@ -80,6 +80,11 @@ COMPUTE COABCONVFAM=FAMCONV + RELRESP = 2.
 VARIABLE LABELS  COABCONVFAM 'DF-COABITAÇÃO FAMILIAR'.
 EXECUTE.
 
+*/COABITAÇÃO TOTAL
+IF (FAMCONVCOM=1) COABTOTAL=1.
+IF (COABCONVFAM_FATOR>1) COABTOTAL=1. 
+VARIABLE LABELS COABTOTAL 'COABTOTAL-COABITACAO TOTAL'.
+EXECUTE.
 
 /*########################################################################################################################################
 /*#######################ÔNUS EXCESSIVO COM ALUGUEL########################
@@ -909,8 +914,8 @@ COMPUTE DEFICIT_PRIORITARIO = 0.
 * Priorizar domicílios precários (DOMPREC).
 IF (DOMPREC = 1) DEFICIT_PRIORITARIO = 1.
 
-* Priorizar coabitação familiar (COABCONVFAM_FATOR), se não for precário.
-IF (DEFICIT_PRIORITARIO = 0 AND COABCONVFAM_FATOR >= 1) DEFICIT_PRIORITARIO = 2.
+* Priorizar coabitação familiar (COABTOTAL), se não for precário.
+IF (DEFICIT_PRIORITARIO = 0 AND COABTOTAL = 1) DEFICIT_PRIORITARIO = 2.
 
 * Priorizar ônus excessivo (ONUSEXC), se não for precário nem coabitação.
 IF (DEFICIT_PRIORITARIO = 0 AND ONUSEXC = 1) DEFICIT_PRIORITARIO = 3.
