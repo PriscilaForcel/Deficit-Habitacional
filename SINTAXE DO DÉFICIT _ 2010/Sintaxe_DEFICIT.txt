@@ -191,7 +191,7 @@ EXECUTE.
 /*########################################################################################################################################
 /*########################################################################################################################################
 
-/* PASSO 4 | SEPARAR OS MUNICÍPIOS POR GRUPOS DEFINIDOS PELA FJP PARA CALCULO DO FATOR RETOR
+/* PASSO 4 | SEPARAR OS MUNICÍPIOS POR GRUPOS DEFINIDOS PELA FJP PARA CALCULO DO FATOR REDUTOR
 
 /*#########################################UNIR OS BANCOS DE DADOS#######################
 
@@ -943,5 +943,6 @@ COMPUTE COABITACAO = (DEFICIT_PRIORITARIO = 2).
 COMPUTE ONUS_EXCESSIVO = (DEFICIT_PRIORITARIO = 3).
 COMPUTE ADENSAMENTO = (DEFICIT_PRIORITARIO = 4).
 EXECUTE.
+
 
 
