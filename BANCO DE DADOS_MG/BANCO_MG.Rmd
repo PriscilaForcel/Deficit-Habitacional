@@ -1,0 +1,252 @@
+---
+título: "BANCO DE DADOS MINAS GERAIS"
+autor: Priscila Kauana Barelli Forcel e Tatiane Ferreira Olivatto
+data: 07/04/2025
+---
+
+```{r}
+#Instalando os pacotes 
+install.packages("knitr")
+install.packages("readxl")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("openxlsx")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Carregando os pacotes
+library(readxl) #Leitura de arquivos em Excel
+library(dplyr) #Manipulação de dados
+library(tidyr) #Manipulação de dados
+library(openxlsx)#Exportar em excel
+```
+
+
+```{r}
+# Carregando e lendo o arquivo, Matriz que é o arquivo do IBGE com a relação de áreas de ponderação e setores censitários
+Matriz <- read.table("G:/Meu Drive/PRISCILA/00_MESTRADO/1_PESQUISA/1_PESQUISA PRI/DADOS/SETOR CENSITÁRIO/BANCO DE DADOS SP/Composicao.txt", header = TRUE, sep = "\t", fileEncoding = "UTF-16")
+# Transformar o código do Setor e da Área de Ponderação de número para texto
+Matriz$Cod_setor <- as.character(Matriz$Cod_setor)
+Matriz$AREA_POND <- as.character(Matriz$AREA_POND)
+```
+
+#Carregando e lendo os arquivos, esses arquivos são as planilhas do Censo Universo!
+#BUSCAR O CENSO UNIVERSO A PARTIR DAQUI, DE MG
+
+
+```{r}
+#Para planilha Básica
+# Ler planilha e selecionar as colunas desejadas, para MG
+Basico <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Basico_MG.xls") %>% select(Cod_setor, Cod_Grandes_Regiões, Nome_Grande_Regiao, Cod_UF, Nome_da_UF , Cod_meso, Nome_da_meso, Cod_micro, Nome_da_micro, Cod_RM, Nome_da_RM, Cod_municipio, Nome_do_municipio, Situacao_setor)
+
+
+# Transformar o código do Setor de número para texto
+Basico$Cod_setor <- as.character(Basico$Cod_setor)
+```
+
+```{r}
+#Para planilha domicílios 01
+# Ler planilha e selecionar as colunas desejadas, para MG
+Domicilio01_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Domicilio01_MG.xls") %>% select(Cod_setor, V002, V023, V037, V038, V039, V040, V041, V046, V101, V102, V103, V233)
+
+# Transformar o código do Setor de número para texto
+Domicilio01_MG$Cod_setor <- as.character(Domicilio01_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha domicílios 02
+# Ler planilha e selecionar as colunas desejadas, para MG
+Domicilio02_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Domicilio02_MG.xls") %>% select(Cod_setor, V007, V008, V009, V011, V023, V041)
+
+# Transformar o código do Setor de número para texto
+Domicilio02_MG$Cod_setor <- as.character(Domicilio02_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Responsável 01
+# Ler planilha e selecionar as colunas desejadas, para MG
+Responsavel01_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Responsavel01_MG.xls") %>% select(Cod_setor, V001)
+
+# Transformar o código do Setor de número para texto
+Responsavel01_MG$Cod_setor <- as.character(Responsavel01_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Responsável 02
+# Ler planilha e selecionar as colunas desejadas, para MG
+Responsavel02_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Responsavel02_MG.xls") %>% select(Cod_setor, V109)
+
+# Transformar o código do Setor de número para texto
+Responsavel02_MG$Cod_setor <- as.character(Responsavel02_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Pessoas 03
+# Ler planilha e selecionar as colunas desejadas, para MG
+Pessoa03_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Pessoa03_MG.xls") %>% select(Cod_setor, V001, V002, V003, V004, V005, V006)
+
+# Transformar o código do Setor de número para texto
+Pessoa03_MG$Cod_setor <- as.character(Pessoa03_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Pessoas 13
+# Ler planilha e selecionar as colunas desejadas, para MG
+Pessoa13_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Pessoa13_MG.xls") %>% select(Cod_setor, V002, V003, V004, V005, V006, V007, V008, V009, V010, V011, V012, V013, V014, V015, V016, V017)
+
+# Transformar o código do Setor de número para texto
+Pessoa13_MG$Cod_setor <- as.character(Pessoa13_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha DomicilioRenda
+# Ler planilha e selecionar as colunas desejadas, para MG
+DomicilioRenda_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/DomicilioRenda_MG.xls") %>% select(Cod_setor, V001, V002, V004, V014)
+
+# Transformar o código do Setor de número para texto
+DomicilioRenda_MG$Cod_setor <- as.character(DomicilioRenda_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Entorno 01
+# Ler planilha e selecionar as colunas desejadas, para MG
+Entorno01_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Entorno01_MG.xls") %>% select(Cod_setor, V011, V017, V050, V052, V113, V119, V125, V131, V137, V143, V149, V154, V160)
+
+# Transformar o código do Setor de número para texto
+Entorno01_MG$Cod_setor <- as.character(Entorno01_MG$Cod_setor)
+```
+
+```{r}
+#Para planilha Entorno 02
+# Ler planilha e selecionar as colunas desejadas, para MG
+Entorno02_MG <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/CENSO UNIVERSO/Entorno02_MG.xls") %>% select(Cod_setor, V202, V203, V204, V205, V206, V207)
+
+# Transformar o código do Setor de número para texto
+Entorno02_MG$Cod_setor <- as.character(Entorno02_MG$Cod_setor)
+```
+
+```{r}
+# Montar a Matriz Total - MG, com todos os dados selecionados até o então. A Matriz_Total_MG será a base, vamos manter a Matriz na esquerda e selecionar cada uma das outras planilhas e associar os dados por Cod_setor:
+
+Matriz_Total_MG <- Basico %>%
+  left_join(Matriz, by = "Cod_setor") %>%
+  left_join(Domicilio01_MG, by = "Cod_setor") %>%
+  left_join(Domicilio02_MG, by = "Cod_setor") %>%
+  left_join(Responsavel01_MG, by = "Cod_setor") %>%
+  left_join(Responsavel02_MG, by = "Cod_setor") %>%
+  left_join(Pessoa03_MG, by = "Cod_setor") %>%
+  left_join(Pessoa13_MG, by = "Cod_setor") %>%
+  left_join(DomicilioRenda_MG, by = "Cod_setor") %>%
+  left_join(Entorno01_MG, by = "Cod_setor") %>%
+  left_join(Entorno02_MG, by = "Cod_setor")
+```
+
+```{r}
+#Transformar as variáveis em conteúdo numérico
+variaveis_numericas <- c("V002.x", "V023.x", "V037", "V038", "V039", "V040", "V041.x", "V046", "V101", "V102", "V103", "V233", "V007.x", "V008.x", "V009.x", "V011.x", "V023.y", "V041.y", "V001.x", "V109", "V001.y", "V002.y", "V003.x", "V004.x", "V005.x", "V006.x", "V002.x.x", "V003.y", "V004.y", "V005.y", "V006.y", "V007.y", "V008.y", "V009.y", "V010", "V011.y", "V012", "V013", "V014.x", "V015", "V016", "V017.x", "V001", "V002.y.y", "V004", "V014.y", "V011", "V017.y", "V050", "V052", "V113", "V119", "V125", "V131", "V137", "V143", "V149", "V154", "V160", "V202", "V203", "V204", "V205", "V206", "V207")
+```
+
+```{r}
+#verificar se as variáveis existem no dataframe
+variaveis_existentes <- intersect(variaveis_numericas, names(Matriz_Total_MG))
+```
+
+```{r}
+# Substituir "X" por 0 e converter apenas colunas que contenham dados numéricos ou "X"
+Matriz_Total_MG[variaveis_existentes] <- Matriz_Total_MG[variaveis_existentes] %>%
+  mutate(across(everything(), ~ ifelse(. == "X", 0, suppressWarnings(as.numeric(as.character(.))))))
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V202 e V203
+Matriz_Total_MG$soma_V202eV203 <- rowSums(Matriz_Total_MG[c("V202", "V203")], na.rm = TRUE)
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V204 e V205
+Matriz_Total_MG$soma_V204eV205 <- rowSums(Matriz_Total_MG[c("V204", "V205")], na.rm = TRUE)
+```
+
+```{r}
+#criar uma nova coluna com a soma das variáveis V206 e V207
+Matriz_Total_MG$soma_V206eV207 <- rowSums(Matriz_Total_MG[c("V206", "V207")], na.rm = TRUE)
+```
+
+#MONTAR BANCO DE DADOS, RURAL E URBANO SEPARADOS
+
+```{r}
+#FILTRAR O BANCO DE DADOS DOS SETORES CENSITÁRIOS - Matriz_Total_MG
+#RURAL
+Matriz_Total_MGRural <- filter(Matriz_Total_MG, Situacao_setor %in% c("4", "5", "6", "7", "8"))
+```
+
+```{r}
+#FILTRAR O BANCO DE DADOS DOS SETORES CENSITÁRIOS - Matriz_Total_MG
+#URBANO
+Matriz_Total_MGUrbano <- filter(Matriz_Total_MG, Situacao_setor %in% c("1","2","3"))
+```
+
+```{r}
+# Exportar em planilha excel. 
+write.xlsx(BD_MG_DEFICIT, "G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/BD_MG_SETORCENSITARIO.xlsx")
+```
+```
+
+#SOMAR O BANCO DE DADOS URBANOS POR ÁREA DE PONDERAÇÃO
+
+```{r}
+# Lista das variáveis que vamos somar
+variaveis <- c("V002.x", "V023.x", "V037", "V038", "V039", "V040", "V041.x", "V046", "V101", "V102", "V103", "V233", "V007.x", "V008.x", "V009.x", "V011.x", "V023.y", "V041.y", "V001.x", "V109", "V001.y", "V002.y", "V003.x", "V004.x", "V005.x", "V006.x", "V002.x.x", "V003.y", "V004.y", "V005.y", "V006.y", "V007.y", "V008.y", "V009.y", "V010", "V011.y", "V012", "V013", "V014.x", "V015", "V016", "V017.x", "V001", "V002.y.y", "V004", "V014.y", "V011", "V017.y", "V050", "V052", "V113", "V119", "V125", "V131", "V137", "V143", "V149", "V154", "V160", "V202", "V203", "V204", "V205", "V206", "V207", "soma_V202eV203", "soma_V204eV205", "soma_V206eV207")
+
+# Somar todas as variáveis listadas por AREA_POND
+AP_variaveis <- Matriz_Total_MGUrbano %>%
+  group_by(AREA_POND) %>%
+  summarise(across(all_of(variaveis), ~ sum(.x, na.rm = TRUE), .names = "Soma_{.col}"))
+```
+
+
+#CRIAR O BANCO DE DADOS URBANOS, SEM AS VARIÁVEIS DO DÉFICIT - "Matriz_MGtotal_APUrbano"
+
+```{r}
+#Criar um banco de dados, esse terá as informações da "Matriz" (variáveis "NM_MUNICIP", "NM_MICRO", "NM_MESO") e as informações da "AP_variaveis"
+
+# Selecionar as colunas desejadas da tabela Matriz
+Matriz_selecionada <- Matriz_Total_MG[, c("AREA_POND", "Cod_UF", "Nome_da_UF", "Cod_meso", "Nome_da_meso", "Cod_micro", "Nome_da_micro", "Cod_RM", "Nome_da_RM", "Cod_municipio", "Nome_do_municipio" )]
+
+# Remover as linhas duplicadas
+Matriz_selecionada <- unique(Matriz_selecionada)
+
+# Realizar o merge com base na variável 'AREA_POND'
+Matriz_MGtotal_APUrbano <- merge(Matriz_selecionada, AP_variaveis, by = "AREA_POND", all = FALSE)
+```
+
+
+#CARREGAR OS DADOS DO DÉFICIT POR ÁREA DE PONDERAÇÃO##############
+
+```{r}
+# Carregar a planilha do cálculo do déficit com todas as colunas
+DEFICIT_2010 <- read_excel("G:/Meu Drive/PRISCILA/01_GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/DÉFICIT MG/BASES SPSS/DEFICIT_MG_AP.xlsx")
+```
+
+
+#CRIAR O BANCO DE DADOS FINAL - "BANCO_URBANO_MG-DEFICIT"
+```{r}
+#Criar um banco de dados, esse será o banco de dados com informações do déficit e todas as áreas de ponderações urbanas
+
+# Realizar o merge com base na variável 'AREA_POND'
+BD_MG_DEFICIT <- merge(Matriz_MGtotal_APUrbano, DEFICIT_2010, by = "AREA_POND", all.x = TRUE)
+```
+
+
+```{r}
+# Verificar as primeiras linhas do novo banco de dados
+head(BD_MG_DEFICIT)
+
+# Exportar em planilha excel. 
+write.xlsx(BD_MG_DEFICIT, "G:/Meu Drive/PRISCILA/GP_DÉFICIT HABITACIONAL/DÉFICIT HABITACIONAL/MG/BD_MG_DEFICIT.xlsx")
+```
+
